@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 270 50% 97%;
+    --foreground: 270 15% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 270 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 15% 20%;
+
+    --primary: 270 70% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 280 60% 70%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 270 30% 95%;
+    --muted-foreground: 270 10% 50%;
+
+    --accent: 310 70% 65%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 270 30% 90%;
+    --input: 270 30% 95%;
+    --ring: 270 70% 60%;
+
+    --radius: 1rem;
+    
+  /* Custom gradient tokens (warm brown aesthetic) */
+  --gradient-hero: linear-gradient(135deg, hsl(0, 89%, 4%) 0%, hsl(32, 51%, 48%) 50%, hsl(23, 64%, 63%) 100%);
+  --gradient-card: linear-gradient(135deg, hsl(28 45% 14%) 0%, hsl(22 38% 18%) 100%);
+    
+    /* Shadow tokens */
+    --shadow-card: 0 4px 20px -2px hsl(270 70% 60% / 0.1);
+    --shadow-hover: 0 8px 30px -4px hsl(270 70% 60% / 0.15);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 270 30% 12%;
+    --foreground: 270 20% 95%;
+
+    --card: 270 25% 16%;
+    --card-foreground: 270 20% 95%;
+
+    --popover: 270 25% 16%;
+    --popover-foreground: 270 20% 95%;
+
+    --primary: 270 70% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 280 50% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 270 20% 20%;
+    --muted-foreground: 270 15% 65%;
+
+    --accent: 310 60% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 270 20% 25%;
+    --input: 270 20% 20%;
+    --ring: 270 70% 60%;
+    
+  --gradient-hero: linear-gradient(135deg, hsl(30 28% 12%) 0%, hsl(28 24% 10%) 50%, hsl(24 20% 14%) 100%);
+  --gradient-card: linear-gradient(135deg, hsl(28 20% 10%) 0%, hsl(22 18% 12%) 100%);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Layout helpers */
+  .hero-full {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    /* solid header background for better contrast */
+    background-color: hsla(9, 18%, 44%, 0.96);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    z-index: 40;
+  }
+
+  /* dark mode header background */
+  .dark .sticky-header {
+    background-color: hsl(30 18% 10% / 0.92);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.45);
+  }
+
+  /* Destination card hover */
+  .dest-card-img {
+    transition: transform 0.45s cubic-bezier(.2,.8,.2,1), filter 0.35s;
+  }
+  .dest-card-overlay {
+    transition: opacity 0.35s ease, transform 0.45s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .service-card-icon {
+    transition: transform 0.28s ease, box-shadow 0.28s ease;
+  }
+
+  /* subtle hover growth for service wrapper */
+  .service-wrapper:hover .service-card-icon {
+    transform: scale(1.06) rotate(-6deg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  }
+
+  /* Section background helper with overlay and hover transparency */
+  .section-bg {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    transition: background 300ms ease;
+  }
+
+  .section-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45); /* dark overlay for readability */
+    transition: background-color 220ms ease, opacity 220ms ease;
+    pointer-events: none;
+  }
+
+  .section-bg .section-content {
+    position: relative;
+    z-index: 10;
+    /* reduce horizontal 'border' length by constraining content and padding */
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 2rem 1rem;
+  }
+
+  /* hover: make overlay slightly more transparent to reveal image */
+  .section-bg:hover::before {
+    background: rgba(0,0,0,0.22);
+  }
+
+  /* subtle heading reveal on hover */
+  .section-bg .section-content h1,
+  .section-bg .section-content h2 {
+    transition: color 200ms ease, transform 260ms ease, opacity 200ms ease;
+    transform: translateY(0);
+  }
+
+  .section-bg:hover .section-content h1,
+  .section-bg:hover .section-content h2 {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
