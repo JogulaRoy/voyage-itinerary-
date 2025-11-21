@@ -163,7 +163,19 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-8 text-base md:text-lg">
+    <div 
+      className="w-full max-w-6xl mx-auto space-y-8 text-base md:text-lg"
+      style={{
+        backgroundImage: "url('/pic16.jpeg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        backgroundRepeat: "no-repeat",
+        minHeight: "100vh",
+        padding: "2rem"
+      }}
+    >
+      <div className="max-w-6xl mx-auto space-y-8 text-base md:text-lg px-4">
       <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl border-2 border-primary/20">
         <div className="flex items-center gap-3 mb-6">
           <Sparkles className="w-8 h-8 text-primary" />
@@ -409,6 +421,8 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
           </div>
         </Card>
       )}
+    </div>
+      </div>
     </div>
   );
 };
