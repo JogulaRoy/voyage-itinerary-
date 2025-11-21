@@ -1,72 +1,128 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams } from "react-router-dom";
-import { Card } from "@/components/ui/card";
-import { DESTINATIONS, findDestination } from "@/lib/destinations";
+import { DESTINATION_INFO } from "@/lib/destinationInfo";
 
 const DestinationDetails: React.FC = () => {
   const { name } = useParams();
   const destName = name ? decodeURIComponent(name) : undefined;
-  const dest = findDestination(destName);
+  const destInfo = destName ? DESTINATION_INFO[destName] : null;
 
-  const [places, setPlaces] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      if (!destName) return;
-      setLoading(true);
-      try {
-        // Use Wikipedia REST API to get top extracts for the destination
-        const search = encodeURIComponent(destName);
-        const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts&exintro&explaintext&titles=${search}`;
-        const res = await fetch(url);
-        const json = await res.json();
-        const pages = json.query?.pages || {};
-        const entries = Object.values(pages).map((p: any) => ({ title: p.title, extract: p.extract }));
-        // For 'famous places', do a second search using 'destName attractions' and take top results
-        const attractionsUrl = `https://en.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(destName + ' attractions')}&limit=5`;
-        const aRes = await fetch(attractionsUrl);
-        const aJson = await aRes.json();
-        const titles = (aJson?.pages || []).map((p: any) => p.title).slice(0, 5);
-        const attractionDetails = await Promise.all(titles.map(async (t: string) => {
-          const aUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`;
-          const r = await fetch(aUrl);
-          return r.json();
-        }));
-        setPlaces(attractionDetails.filter(Boolean));
-      } catch (err: any) {
-        setError(err?.message || "Failed to fetch details");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [destName]);
-
-  if (!destName) return <div className="p-6">No destination specified.</div>;
+  if (!destName || !destInfo) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px 20px", minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <h1>Destination not found</h1>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card className="p-6 mb-6">
-        <div className="flex items-center gap-4">
-          <img src={dest?.image} alt={destName} className="w-24 h-24 object-cover rounded-lg" />
-          <div>
-            <h1 className="text-3xl font-bold">{destName}</h1>
-            <p className="text-sm text-muted-foreground">Famous places and short summaries (from Wikipedia)</p>
+    <div style={{ backgroundColor: "#f9f9f9", minHeight: "100vh" }}>
+      {/* Hero Section with Image */}
+      <div style={{ position: "relative", height: "400px", overflow: "hidden" }}>
+        <img
+          src={destInfo.image}
+          alt={destInfo.name}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            filter: "brightness(0.7)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            textAlign: "center",
+            color: "white",
+            zIndex: 10,
+          }}
+        >
+          <h1 style={{ fontSize: "3.5rem", fontWeight: "700", margin: 0, textShadow: "2px 2px 4px rgba(0,0,0,0.7)" }}>
+            {destInfo.name}
+          </h1>
+        </div>
+      </div>
+
+      {/* Content Section */}
+      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "60px 20px" }}>
+        <div
+          style={{
+            backgroundColor: "white",
+            borderRadius: "15px",
+            padding: "40px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.1)",
+          }}
+        >
+          <div style={{ lineHeight: "1.8", color: "#333", fontSize: "16px" }}>
+            {destInfo.description.split("\n").map((paragraph, index) => (
+              <p
+                key={index}
+                style={{
+                  marginBottom: "20px",
+                  textAlign: "justify",
+                  fontSize: index === 0 ? "18px" : "16px",
+                  fontWeight: index === 0 ? "500" : "normal",
+                }}
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
+
+          {/* Decorative Elements */}
+          <div style={{ marginTop: "40px", paddingTop: "40px", borderTop: "2px solid #55bd58" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "20px" }}>
+              <div style={{ textAlign: "center", padding: "20px", backgroundColor: "#f0f9f4", borderRadius: "10px" }}>
+                <div style={{ fontSize: "28px", fontWeight: "700", color: "#55bd58" }}>✈️</div>
+                <p style={{ fontSize: "14px", marginTop: "10px", color: "#666" }}>Best Time to Visit</p>
+              </div>
+              <div style={{ textAlign: "center", padding: "20px", backgroundColor: "#f0f9f4", borderRadius: "10px" }}>
+                <div style={{ fontSize: "28px", fontWeight: "700", color: "#55bd58" }}>🍜</div>
+                <p style={{ fontSize: "14px", marginTop: "10px", color: "#666" }}>Local Cuisine</p>
+              </div>
+              <div style={{ textAlign: "center", padding: "20px", backgroundColor: "#f0f9f4", borderRadius: "10px" }}>
+                <div style={{ fontSize: "28px", fontWeight: "700", color: "#55bd58" }}>🏛️</div>
+                <p style={{ fontSize: "14px", marginTop: "10px", color: "#666" }}>Cultural Heritage</p>
+              </div>
+              <div style={{ textAlign: "center", padding: "20px", backgroundColor: "#f0f9f4", borderRadius: "10px" }}>
+                <div style={{ fontSize: "28px", fontWeight: "700", color: "#55bd58" }}>🌍</div>
+                <p style={{ fontSize: "14px", marginTop: "10px", color: "#666" }}>Natural Beauty</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Call to Action */}
+          <div style={{ marginTop: "40px", textAlign: "center" }}>
+            <button
+              onClick={() => window.history.back()}
+              style={{
+                backgroundColor: "#331a4b",
+                color: "white",
+                border: "none",
+                padding: "15px 40px",
+                fontSize: "16px",
+                fontWeight: "600",
+                borderRadius: "30px",
+                cursor: "pointer",
+                boxShadow: "0 4px 15px rgba(85, 189, 88, 0.3)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseOver={(e) => {
+                (e.target as HTMLButtonElement).style.backgroundColor = "#388E3C";
+                (e.target as HTMLButtonElement).style.transform = "translateY(-3px)";
+              }}
+              onMouseOut={(e) => {
+                (e.target as HTMLButtonElement).style.backgroundColor = "#55bd58";
+                (e.target as HTMLButtonElement).style.transform = "translateY(0)";
+              }}
+            >
+              ← Back to Destinations
+            </button>
           </div>
         </div>
-      </Card>
-
-      <div className="space-y-4">
-        {loading && <div>Loading famous places...</div>}
-        {error && <div className="text-red-600">Error: {error}</div>}
-        {places.map((p: any, i: number) => (
-          <Card key={i} className="p-4">
-            <h3 className="text-xl font-semibold">{p.title}</h3>
-            <p className="text-sm text-muted-foreground">{p.extract || p.description || 'No summary available'}</p>
-            {p.thumbnail && <img src={p.thumbnail.source} alt={p.title} className="w-full max-w-xs mt-2 rounded" />}
-          </Card>
-        ))}
       </div>
     </div>
   );

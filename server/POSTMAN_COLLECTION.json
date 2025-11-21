@@ -1,0 +1,86 @@
+{
+  "info": {
+    "name": "AI Itinerary Planner - Google Gemini",
+    "description": "Collection for generating travel itineraries using Google Gemini API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Generate Itinerary (Direct Gemini Call)",
+      "event": [],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-goog-api-key",
+            "value": "YOUR_GOOGLE_GEMINI_API_KEY",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"You're an AI Itinerary planner. You need to plan the best itinerary for 4 days to cover all major tourist places from Paris. Please plan it in a luxurious way with user interests: 'historical places' and budget level: 'luxury'. Give me the plan in a well formatted string with bullet points and bold wherever necessary from Day 1 to Day 4, including food, travel and other costs.\"\n        }\n      ]\n    }\n  ]\n}"
+        }
+      },
+      "url": {
+        "raw": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=YOUR_GOOGLE_GEMINI_API_KEY",
+        "protocol": "https",
+        "host": ["generativelanguage", "googleapis", "com"],
+        "path": ["v1beta", "models", "gemini-2.0-flash-001:generateContent"],
+        "query": [
+          {
+            "key": "key",
+            "value": "YOUR_GOOGLE_GEMINI_API_KEY"
+          }
+        ]
+      },
+      "description": "Call Google Gemini API directly. Replace YOUR_GOOGLE_GEMINI_API_KEY with your actual API key."
+    },
+    {
+      "name": "Generate Itinerary (Via Local Server)",
+      "event": [],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"destination\": \"Tokyo\",\n  \"days\": 5,\n  \"budget\": \"luxury\",\n  \"interests\": \"culture, food, technology, historical sites\"\n}"
+        }
+      },
+      "url": {
+        "raw": "http://localhost:3001/api/generate-itinerary",
+        "protocol": "http",
+        "host": ["localhost"],
+        "port": "3001",
+        "path": ["api", "generate-itinerary"]
+      },
+      "description": "Call the local Express server endpoint. Server must be running with GOOGLE_GEMINI_API_KEY environment variable set."
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3001/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3001",
+          "path": ["health"]
+        }
+      },
+      "description": "Check if the server is running"
+    }
+  ]
+}

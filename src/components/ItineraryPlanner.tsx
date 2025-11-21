@@ -1,12 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Sparkles } from "lucide-react";
+import { generateMockItinerary } from "@/integrations/aiPlanner/mockGenerator";
 import {
   PieChart,
   Pie,
@@ -15,16 +15,16 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
 interface ItineraryPlannerProps {
   destinations: { name: string }[];
 }
 
 const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
-  const [selectedDestinations, setSelectedDestinations] = useState<string[]>([]);
+  const [destination, setDestination] = useState("");
   const [duration, setDuration] = useState("3");
   const [budget, setBudget] = useState("moderate");
   const [interests, setInterests] = useState("");
+
   const [itinerary, setItinerary] = useState("");
   const [structured, setStructured] = useState<{
     summary?: string;
@@ -35,19 +35,14 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const toggleDestination = (destination: string) => {
-    setSelectedDestinations(prev =>
-      prev.includes(destination)
-        ? prev.filter(d => d !== destination)
-        : [...prev, destination]
-    );
-  };
+  const GEMINI_API_KEY = "AIzaSyBlOn5kMN3bD7kb6iUIuEpJ6SvRsZ6zazY";
 
   const generateItinerary = async () => {
-    if (selectedDestinations.length === 0) {
+    const dest = destination.trim();
+    if (!dest) {
       toast({
-        title: "No destinations selected",
-        description: "Please select at least one destination",
+        title: "Missing destination",
+        description: "Please enter a destination.",
         variant: "destructive",
       });
       return;
@@ -57,40 +52,111 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
     setItinerary("");
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-itinerary', {
-        body: {
-          destinations: selectedDestinations,
-          duration: parseInt(duration),
-          budget,
-          interests: interests || "General sightseeing, culture, and food",
-        },
+      const days = parseInt(duration) || 3;
+      const userInterests = interests || "historical places";
+      const budgetLevel = budget;
+
+      // Build the prompt with dynamic variables
+      const promptText = `You're an AI itinerary planner. You need to plan the best itinerary for ${days} days to cover all major tourist places from ${dest}. Please plan it in a ${budgetLevel} way with user interest of '${userInterests}'. Give me the plan in a well formatted string with bullet points and bold wherever it is necessary from Day 1 to Day ${days}, including food, travel and other costs.`;
+
+      // Build the payload matching the provided structure
+      const payload = {
+        contents: [
+          {
+            parts: [
+              {
+                text: promptText,
+              },
+            ],
+          },
+        ],
+      };
+
+      // Call Google Gemini API
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Extract the text from Gemini response
+      const text =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        JSON.stringify(data);
+
+      setItinerary(text);
+
+      // Parse the response for structured display
+      const days_array = parseDaysFromItinerary(text);
+      const transport = extractSection(text, /transport|transportation|getting around/i);
+      const restaurants = extractLines(text, /restaurant|dinner|breakfast|lunch|cafe/i).slice(0, 8);
+      const summary =
+        extractSection(text, /summary|overview|about this trip/i) ||
+        text.split("\n\n")[0];
+
+      setStructured({
+        summary,
+        days: days_array,
+        transport,
+        restaurants,
       });
 
-      if (error) throw error;
+      toast({
+        title: "Itinerary generated!",
+        description: "Your personalized travel plan is ready",
+      });
+    } catch (error) {
+      console.warn("⚠️ Gemini API failed, generating mock itinerary...", error);
 
-      if (data?.itinerary) {
-        const text: string = data.itinerary;
-        setItinerary(text);
-        // Try to parse a day-by-day itinerary
-        const days = parseDaysFromItinerary(text);
-        const transport = extractSection(text, /transport|transportation|getting around/i);
-        const restaurants = extractLines(text, /restaurant|dinner|breakfast|lunch|cafe/i).slice(0, 8);
-        const summary = extractSection(text, /summary|overview|about this trip/i) ||
-          text.split("\n\n")[0];
+      try {
+        // Fallback to mock itinerary
+        const mockText = generateMockItinerary(
+          [destination],
+          parseInt(duration),
+          budget,
+          interests || "historical places"
+        );
 
-        setStructured({ summary, days, transport, restaurants });
+        setItinerary(mockText);
+        const days_array = parseDaysFromItinerary(mockText);
+        const transport = extractSection(mockText, /transport|transportation|getting around/i);
+        const restaurants = extractLines(mockText, /restaurant|dinner|breakfast|lunch|cafe/i).slice(0, 8);
+        const summary =
+          extractSection(mockText, /summary|overview|about this trip/i) ||
+          mockText.split("\n\n")[0];
+
+        setStructured({
+          summary,
+          days: days_array,
+          transport,
+          restaurants,
+        });
+
         toast({
-          title: "Itinerary generated!",
-          description: "Your personalized travel plan is ready",
+          title: "Sample Itinerary Generated",
+          description: "Showing mock itinerary (Gemini API failed)",
+        });
+      } catch (fallbackError) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error("❌ Both Gemini and mock generation failed:", msg);
+        toast({
+          title: "Error generating itinerary",
+          description: msg,
+          variant: "destructive",
         });
       }
-    } catch (error) {
-      console.error("Error generating itinerary:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate itinerary",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }
@@ -105,21 +171,18 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
         </div>
 
         <div className="space-y-6">
-          {/* Destination Selection */}
+          {/* Destination Input */}
           <div>
-            <Label className="text-lg font-semibold mb-3 block">Select Destinations</Label>
-            <div className="flex flex-wrap gap-2">
-              {destinations.map((dest) => (
-                <Button
-                  key={dest.name}
-                  variant={selectedDestinations.includes(dest.name) ? "default" : "outline"}
-                  onClick={() => toggleDestination(dest.name)}
-                  className="transition-all"
-                >
-                  {dest.name}
-                </Button>
-              ))}
-            </div>
+            <Label htmlFor="destination" className="text-lg font-semibold mb-2 block">
+              Enter Destination
+            </Label>
+            <Input
+              id="destination"
+              placeholder="E.g., Paris, Tokyo, New York, Egypt, Greece..."
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              className="max-w-lg"
+            />
           </div>
 
           {/* Duration */}
@@ -143,14 +206,26 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
             <Label className="text-lg font-semibold mb-3 block">Budget Level</Label>
             <div className="flex gap-3">
               {["budget", "moderate", "luxury"].map((level) => (
-                <Button
+                <label
                   key={level}
-                  variant={budget === level ? "default" : "outline"}
-                  onClick={() => setBudget(level)}
-                  className="capitalize"
+                  className={`p-3 rounded-lg border-2 transition-all cursor-pointer flex items-center gap-2 capitalize ${
+                    budget === level
+                      ? 'text-white shadow-md'
+                      : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:shadow-sm'
+                  }`}
+                  style={budget === level ? { background: 'linear-gradient(90deg, hsl(250 60% 55% / 0.95), hsl(260 50% 40% / 0.9))', borderColor: 'hsl(250 60% 55% / 0.3)' } : undefined}
                 >
-                  {level}
-                </Button>
+                  <input
+                    type="radio"
+                    name="budget"
+                    value={level}
+                    checked={budget === level}
+                    onChange={() => setBudget(level)}
+                    className="sr-only"
+                    aria-checked={budget === level}
+                  />
+                  <span className="font-medium text-sm">{level}</span>
+                </label>
               ))}
             </div>
           </div>
@@ -162,7 +237,7 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
             </Label>
             <Textarea
               id="interests"
-              placeholder="E.g., adventure sports, photography, local cuisine, historical sites..."
+              placeholder="E.g., adventure sports, photography, local cuisine, historical sites, museums..."
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
               className="min-h-[100px]"
@@ -172,7 +247,7 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
           {/* Generate Button */}
           <Button
             onClick={generateItinerary}
-            disabled={isLoading || selectedDestinations.length === 0}
+            disabled={isLoading || !destination.trim()}
             className="w-full h-14 text-lg font-semibold"
             size="lg"
           >
@@ -194,114 +269,144 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
       {/* Itinerary Display */}
       {itinerary && (
         <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-xl rounded-2xl border-2 border-primary/20">
-            <h3 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Your Personalized Itinerary</h3>
+          <h3 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Your Personalized Itinerary
+          </h3>
 
-            {/* Summary */}
-            {structured.summary && (
-              <div className="mb-6 border-l-4 border-primary/30 pl-4">
-                <div className="flex items-center gap-3">
-                  <CategoryBadge label="Overview" colorIndex={0} />
-                  <h4 className="text-lg md:text-xl font-semibold">Trip Overview</h4>
+          {/* Summary */}
+          {structured.summary && (
+            <div className="mb-6 border-l-4 border-primary/30 pl-4">
+              <div className="flex items-center gap-3">
+                <CategoryBadge label="Overview" colorIndex={0} />
+                <h4 className="text-lg md:text-xl font-semibold">Trip Overview</h4>
+              </div>
+              <p className="text-sm md:text-base text-muted-foreground mt-2 whitespace-pre-wrap">
+                {structured.summary}
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {/* Cost breakdown + pie chart */}
+            <div className="col-span-1 md:col-span-1 pl-4" style={{ borderLeft: '4px solid hsl(250 60% 55% / 0.15)' }}>
+              <div className="flex items-center gap-3">
+                <CategoryBadge label="Costs" colorIndex={1} />
+                <h4 className="text-lg md:text-xl font-semibold mb-2">
+                  Estimated Cost Breakdown
+                </h4>
+              </div>
+              <div className="h-48 bg-white/0 rounded-md flex items-center justify-center">
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie
+                      data={buildCostData(parseInt(duration), budget)}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={60}
+                      innerRadius={30}
+                      label
+                    >
+                      {buildCostData(parseInt(duration), budget).map(
+                        (entry, idx) => (
+                          <Cell
+                            key={`cell-${idx}`}
+                            fill={COLORS[idx % COLORS.length]}
+                          />
+                        )
+                      )}
+                    </Pie>
+                    <ReTooltip />
+                    <Legend verticalAlign="bottom" height={36} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Costs table */}
+            <div className="col-span-1 md:col-span-2 border-l-4 border-amber-200/50 pl-4">
+              <div className="flex items-center gap-3">
+                <CategoryBadge label="Costs (table)" colorIndex={2} />
+                <h4 className="text-lg md:text-xl font-semibold mb-2">
+                  Estimated Costs (approx.)
+                </h4>
+              </div>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="text-sm text-muted-foreground">
+                    <th className="pb-2">Category</th>
+                    <th className="pb-2">Estimated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {buildCostData(parseInt(duration), budget).map((row) => (
+                    <tr key={row.name} className="border-t">
+                      <td className="py-2">{row.name}</td>
+                      <td className="py-2 font-medium">${row.value.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Day by day */}
+          <div className="space-y-4">
+            {structured.days && structured.days.length > 0 ? (
+              structured.days.map((d, idx) => (
+                <div
+                  key={idx}
+                  className="border-l-4 pl-4"
+                  style={{ borderColor: COLORS[idx % COLORS.length] + "66" }}
+                >
+                  <DayAccordion
+                    key={idx}
+                    index={idx}
+                    title={d.title}
+                    content={d.content}
+                  />
                 </div>
-                <p className="text-sm md:text-base text-muted-foreground mt-2 whitespace-pre-wrap">{structured.summary}</p>
+              ))
+            ) : (
+              <div className="prose prose-lg max-w-none">
+                <div className="whitespace-pre-wrap text-foreground">{itinerary}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Transport & restaurants */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {structured.transport && (
+              <div className="border-l-4 border-sky-200/50 pl-4">
+                <div className="flex items-center gap-3">
+                  <CategoryBadge label="Transport" colorIndex={3} />
+                  <h4 className="text-lg md:text-xl font-semibold">
+                    Transportation Tips
+                  </h4>
+                </div>
+                <p className="text-sm md:text-base text-muted-foreground mt-2 whitespace-pre-wrap">
+                  {structured.transport}
+                </p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              {/* Cost breakdown + pie chart */}
-              <div className="col-span-1 md:col-span-1 border-l-4 border-emerald-200/50 pl-4">
+            {structured.restaurants && structured.restaurants.length > 0 && (
+              <div className="border-l-4 border-rose-200/50 pl-4">
                 <div className="flex items-center gap-3">
-                  <CategoryBadge label="Costs" colorIndex={1} />
-                  <h4 className="text-lg md:text-xl font-semibold mb-2">Estimated Cost Breakdown</h4>
+                  <CategoryBadge label="Food" colorIndex={4} />
+                  <h4 className="text-lg md:text-xl font-semibold">
+                    Recommended Places to Eat
+                  </h4>
                 </div>
-                <div className="h-48 bg-white/0 rounded-md flex items-center justify-center">
-                  <ResponsiveContainer width="100%" height={160}>
-                    <PieChart>
-                      <Pie
-                        data={buildCostData(parseInt(duration), budget)}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={60}
-                        innerRadius={30}
-                        label
-                      >
-                        {buildCostData(parseInt(duration), budget).map((entry, idx) => (
-                          <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ReTooltip />
-                      <Legend verticalAlign="bottom" height={36} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                <ul className="list-disc pl-5 mt-2 text-sm md:text-base text-muted-foreground">
+                  {structured.restaurants.map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
               </div>
-
-              {/* Costs table */}
-              <div className="col-span-1 md:col-span-2 border-l-4 border-amber-200/50 pl-4">
-                <div className="flex items-center gap-3">
-                  <CategoryBadge label="Costs (table)" colorIndex={2} />
-                  <h4 className="text-lg md:text-xl font-semibold mb-2">Estimated Costs (approx.)</h4>
-                </div>
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="text-sm text-muted-foreground">
-                      <th className="pb-2">Category</th>
-                      <th className="pb-2">Estimated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {buildCostData(parseInt(duration), budget).map((row) => (
-                      <tr key={row.name} className="border-t">
-                        <td className="py-2">{row.name}</td>
-                        <td className="py-2 font-medium">${row.value.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Day by day */}
-            <div className="space-y-4">
-              {(structured.days && structured.days.length > 0) ? (
-                structured.days.map((d, idx) => (
-                  <div key={idx} className="border-l-4 pl-4" style={{ borderColor: COLORS[idx % COLORS.length] + "66" }}>
-                    <DayAccordion key={idx} index={idx} title={d.title} content={d.content} />
-                  </div>
-                ))
-              ) : (
-                <div className="prose prose-lg max-w-none">
-                  <div className="whitespace-pre-wrap text-foreground">{itinerary}</div>
-                </div>
-              )}
-            </div>
-
-            {/* Transport & restaurants */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {structured.transport && (
-                <div className="border-l-4 border-sky-200/50 pl-4">
-                  <div className="flex items-center gap-3">
-                    <CategoryBadge label="Transport" colorIndex={3} />
-                    <h4 className="text-lg md:text-xl font-semibold">Transportation Tips</h4>
-                  </div>
-                  <p className="text-sm md:text-base text-muted-foreground mt-2 whitespace-pre-wrap">{structured.transport}</p>
-                </div>
-              )}
-
-              {structured.restaurants && structured.restaurants.length > 0 && (
-                <div className="border-l-4 border-rose-200/50 pl-4">
-                  <div className="flex items-center gap-3">
-                    <CategoryBadge label="Food" colorIndex={4} />
-                    <h4 className="text-lg md:text-xl font-semibold">Recommended Places to Eat</h4>
-                  </div>
-                  <ul className="list-disc pl-5 mt-2 text-sm md:text-base text-muted-foreground">
-                    {structured.restaurants.map((r, i) => <li key={i}>{r}</li>)}
-                  </ul>
-                </div>
-              )}
-            </div>
+            )}
+          </div>
         </Card>
       )}
     </div>
@@ -310,14 +415,13 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
 
 export default ItineraryPlanner;
 
-// Helpers and small components
+// Helpers
 const COLORS = ["#60A5FA", "#34D399", "#FBBF24", "#F87171", "#A78BFA"];
 
 function buildCostData(days: number, budget: string) {
-  // Rough per-day budget estimates by level
-  const perDay = budget === "luxury" ? 400 : budget === "moderate" ? 120 : 50;
+  const perDay =
+    budget === "luxury" ? 400 : budget === "moderate" ? 120 : 50;
   const total = perDay * Math.max(1, days);
-  // Category split
   const breakdown = [
     { name: "Accommodation", pct: 0.4 },
     { name: "Food", pct: 0.25 },
@@ -329,7 +433,6 @@ function buildCostData(days: number, budget: string) {
 
 function parseDaysFromItinerary(text?: string) {
   if (!text) return [];
-  // Try split by headers like "Day 1", "Day 2" or "Day 1:" etc.
   const parts = text.split(/(?=Day\s*\d+[:\-.]?)/i);
   if (parts.length <= 1) return [];
   return parts.map((p) => {
@@ -341,43 +444,70 @@ function parseDaysFromItinerary(text?: string) {
 function extractSection(text: string, re: RegExp) {
   const idx = text.search(re);
   if (idx === -1) return undefined;
-  // return the paragraph containing that match
-  const before = text.slice(0, idx);
   const after = text.slice(idx);
   const para = after.split("\n\n")[0];
   return para.trim();
 }
 
 function extractLines(text: string, re: RegExp) {
-  return (text || "").split(/\n/).map((l) => l.trim()).filter((l) => re.test(l));
+  return (text || "")
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter((l) => re.test(l));
 }
 
-function DayAccordion({ index, title, content }: { index: number; title: string; content: string }) {
+function DayAccordion({
+  index,
+  title,
+  content,
+}: {
+  index: number;
+  title: string;
+  content: string;
+}) {
   const [open, setOpen] = useState(index === 0);
   return (
     <div className="border rounded-lg p-4">
       <div className="flex justify-between items-center">
         <div>
           <h5 className="font-semibold text-lg md:text-xl">{title}</h5>
-          <p className="text-sm md:text-base text-muted-foreground mt-1">{content.split('\n').slice(0,2).join(' ') }{content.split('\n').length>2?'...':''}</p>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
+            {content.split("\n").slice(0, 2).join(" ")}
+            {content.split("\n").length > 2 ? "..." : ""}
+          </p>
         </div>
         <div>
-          <Button variant="outline" size="sm" onClick={() => setOpen((s) => !s)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setOpen((s) => !s)}
+          >
             {open ? "Collapse" : "Expand"}
           </Button>
         </div>
       </div>
       {open && (
-        <div className="mt-4 text-sm md:text-base text-muted-foreground whitespace-pre-wrap">{content}</div>
+        <div className="mt-4 text-sm md:text-base text-muted-foreground whitespace-pre-wrap">
+          {content}
+        </div>
       )}
     </div>
   );
 }
 
-function CategoryBadge({ label, colorIndex }: { label: string; colorIndex: number }) {
+function CategoryBadge({
+  label,
+  colorIndex,
+}: {
+  label: string;
+  colorIndex: number;
+}) {
   const color = COLORS[colorIndex % COLORS.length];
   return (
-    <span className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full text-sm font-medium" style={{ background: `${color}22`, color }}>
+    <span
+      className="inline-flex items-center gap-2 px-2 py-0.5 rounded-full text-sm font-medium"
+      style={{ background: `${color}22`, color }}
+    >
       <span className="w-2 h-2 rounded-full" style={{ background: color }} />
       <span>{label}</span>
     </span>

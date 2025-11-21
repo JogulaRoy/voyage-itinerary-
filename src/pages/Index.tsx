@@ -1,233 +1,285 @@
-import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import DestinationCard from "@/components/DestinationCard";
-import ServiceCard from "@/components/ServiceCard";
-import ItineraryPlanner from "@/components/ItineraryPlanner";
-import { Sparkles, Clock, Cloud, MapPin, Share2, Calendar } from "lucide-react";
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { DESTINATIONS } from "@/lib/destinations";
 import { useToast } from "@/components/ui/use-toast";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
 const Index = () => {
-  const [selectedDest, setSelectedDest] = useState<string | null>(null);
-  const plannerRef = useRef<HTMLDivElement | null>(null);
   const heroRef = useRef<HTMLDivElement | null>(null);
-  const servicesRef = useRef<HTMLDivElement | null>(null);
-  const aboutRef = useRef<HTMLDivElement | null>(null);
-  const contactRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
-
-  const services = [
-    { icon: Calendar, title: "AI Itinerary", color: "hsl(170, 70%, 50%)", description: "Generate a day-by-day plan tailored to your interests, budget, and travel dates." },
-    { icon: Cloud, title: "Live Weather", color: "hsl(200, 80%, 55%)", description: "See up-to-date weather forecasts for your destination so you can pack and plan with confidence." },
-    { icon: MapPin, title: "Navigate", color: "hsl(40, 90%, 55%)", description: "Quickly open maps for directions and local transit options to get around easily." },
-    { icon: Share2, title: "Share Plans", color: "hsl(340, 75%, 60%)", description: "Share your itinerary with friends via link, social apps, or copy-to-clipboard." },
-  ];
-
   const { toast } = useToast();
 
-  const onServiceClick = async (title: string) => {
-    if (title === "AI Itinerary") {
-      // navigate to planner page
-      navigate('/planner');
-      return;
-    }
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    element?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    if (title === "Live Weather") {
-      // open weather page for selected destination or default to first
-      const dest = selectedDest || DESTINATIONS[0]?.name;
-      navigate(`/weather?dest=${encodeURIComponent(dest || "")}`);
-      return;
-    }
-
-    if (title === "Navigate") {
-      // open Google Maps root (could open destination-specific maps)
-      window.open("https://www.google.com/maps", "_blank");
-      return;
-    }
-
-    if (title === "Share Plans") {
-      // robust share flow:
+  const handleServiceClick = (service: string) => {
+    if (service === "ai-itinerary") {
+      navigate("/planner");
+    } else if (service === "bookings") {
+      window.open("https://www.booking.com", "_blank");
+    } else if (service === "live-weather") {
+      navigate("/weather");
+    } else if (service === "share") {
       const url = window.location.href;
-      const shareTitle = selectedDest ? `My travel plan — ${selectedDest}` : document.title || 'Travel plan';
-      const shareText = selectedDest ? `Check out my plan for ${selectedDest}: ${url}` : `Check out my travel plan: ${url}`;
-
-      const tryClipboard = async () => {
-        try {
-          await navigator.clipboard.writeText(url);
-          toast({ title: 'Link copied', description: 'URL copied to clipboard' });
-          return true;
-        } catch (e) {
-          return false;
-        }
-      };
-
-      // 1) Web Share API
+      const text = `Check out my travel plan: ${url}`;
       if ((navigator as any).share) {
-        try {
-          await (navigator as any).share({ title: shareTitle, text: shareText, url });
-          toast({ title: 'Shared', description: 'Thanks for sharing!' });
-          return;
-        } catch (e) {
-          // user dismissed or failed - fallthrough to clipboard
-        }
+        (navigator as any).share({ title: "Voyage Travel Plan", text, url });
+      } else {
+        navigator.clipboard.writeText(url);
+        toast({ title: "Link copied", description: "URL copied to clipboard" });
       }
-
-      // 2) Clipboard
-      const copied = await tryClipboard();
-      if (copied) return;
-
-      // 3) Open fallback share links (WhatsApp / Telegram / Mail)
-      const wa = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
-      const tg = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText)}`;
-      const mailto = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText)}`;
-
-      // Open a small window with WhatsApp (works on desktop/mobile)
-      try {
-        window.open(wa, '_blank');
-        toast({ title: 'Share', description: 'Opened share options (WhatsApp). If that failed, try the copy link option.' });
-      } catch (e) {
-        // last resort: open mailto
-        try { window.open(mailto, '_blank'); } catch { /* swallow */ }
-        toast({ title: 'Could not open share', description: 'Please copy the link manually.' });
-      }
-      return;
     }
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--gradient-hero)" }}>
-      {/* Header with shortcuts */}
-      <header className="container mx-auto px-4 py-6 sticky-header">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Voyage</h1>
-          </div>
-          <nav className="flex items-center gap-4">
-            <button className="text-sm" onClick={() => heroRef.current?.scrollIntoView({ behavior: 'smooth' })}>Home</button>
-            <button className="text-sm" onClick={() => document.getElementById('famous')?.scrollIntoView({ behavior: 'smooth' })}>Destination Places</button>
-            <button className="text-sm" onClick={() => document.getElementById('our-services')?.scrollIntoView({ behavior: 'smooth' })}>Services</button>
-            <button className="text-sm" onClick={() => plannerRef.current?.scrollIntoView({ behavior: 'smooth' })}> AI Planner</button>
-            <button className="text-sm" onClick={() => document.getElementById('feedback')?.scrollIntoView({ behavior: 'smooth' })}>Feedback</button>
-          </nav>
+    <div className="voyage-container">
+      {/* Header */}
+      <header className="voyage-header">
+        <div className="logo">
+          <h1>Voyage</h1>
         </div>
+        <nav className="voyage-nav">
+          <ul>
+            <li>
+              <a href="#home" onClick={(e) => { e.preventDefault(); scrollToSection("home"); }}>
+                Home
+              </a>
+            </li>
+            <li>
+              <a href="#destination" onClick={(e) => { e.preventDefault(); scrollToSection("destination"); }}>
+                Destination
+              </a>
+            </li>
+            <li>
+              <a href="#service" onClick={(e) => { e.preventDefault(); scrollToSection("service"); }}>
+                Service
+              </a>
+            </li>
+            <li>
+              <a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection("about"); }}>
+                About Us
+              </a>
+            </li>
+          </ul>
+        </nav>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-  {/* 1. Hero Section (full div) */}
-  <section id="home" ref={heroRef} className="mb-16 hero-full section-bg" style={{ backgroundImage: "url('/pic1.jpg')" }}>
-          <div className="section-content max-w-4xl mx-auto text-center text-white">
-            <h1 className="text-5xl font-bold mb-6" style={{ color: 'rgba(255,255,255,0.97)' }}>Plan Less, Travel More — AI Does the Hard Work</h1>
-            <p className="text-xl mb-4" style={{ color: 'rgba(255,255,255,0.9)' }}>Fast, personalized itineraries and destination insights powered by AI.</p>
-            <blockquote className="italic text-lg" style={{ color: 'rgba(255,255,255,0.88)' }}>"Travel smarter, not harder — let AI handle the planning so you can enjoy the journey."</blockquote>
-          </div>
-        </section>
-
-  {/* 2. Trending Destinations */}
-  <section id="famous" className="mb-16 section-bg" style={{ backgroundImage: "url('/pic2.jpg')" }}>
-          <div className="section-content">
-                <div className="flex items-center justify-center gap-2 mb-8">
-                    <span className="text-white text-2xl">✈️</span>
-                    <h2 className="text-2xl font-semibold" style={{ color: 'rgba(255,255,255,0.95)' }}>Famous Destination Places</h2>
-                  </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {DESTINATIONS.map((destination, index) => (
-        <div key={index} onClick={() => { setSelectedDest(destination.name); navigate(`/destination/${encodeURIComponent(destination.name)}`); }}>
-          <DestinationCard
-            name={destination.name}
-            image={destination.image}
-            selected={selectedDest === destination.name}
-          />
+      {/* Hero Section */}
+      <section className="main" id="home" ref={heroRef}>
+        <video autoPlay muted loop>
+          <source src="/bgvid.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <div className="main-content">
+          <h1>Plan Less, Travel More — AI Does the Hard Work</h1>
+          <p>
+            <b>
+              Fast, personalized itineraries and destination insights powered by AI.
+              <br />
+              "Travel smarter, not harder — let AI handle the planning so you can enjoy the journey."
+            </b>
+          </p>
+          <a href="#service" className="btn" onClick={(e) => { e.preventDefault(); scrollToSection("service"); }}>
+            Explore Services
+          </a>
         </div>
-      ))}
-    </div>
-    </div>
-        </section>
-    
+      </section>
 
-  {/* 3. Our Services (new section, icons larger, no Open links) */}
-  <section id="our-services" className="mb-16 section-bg" style={{ backgroundImage: "url('/pic3.jpg')" }}>
-    <div className="section-content">
-      <div className="flex items-center justify-center gap-2 mb-8">
-        <h2 className="text-2xl font-semibold" style={{ color: 'rgba(255,255,255,0.95)' }}>Our Services</h2>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-      {services.map((service, index) => (
-        <div key={index} className="p-2 flex justify-center">
-          <ServiceCard icon={service.icon} title={service.title} color={service.color} size="lg" iconSmall={true} description={service.description} onClick={() => onServiceClick(service.title)} />
+      {/* Famous Destinations Section */}
+      <section className="services" id="destination" style={{ backgroundColor: "white", backgroundImage: "url('pic2.jpg')" }}>
+        <h2 style={{ textAlign: "center", color: "white", paddingTop: "40px" }}>Famous Destination Places</h2>
+        
+        {/* Top 4 Destinations */}
+        <div className="destination-grid" style={{ paddingBottom: "20px" }}>
+          <div className="destination-card" onClick={() => navigate("/destination/Greece")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/greece.jpg" alt="Greece" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Greece</h3>
+          </div>
+          <div className="destination-card" onClick={() => navigate("/destination/Japan")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/japan.jpg" alt="Japan" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Japan</h3>
+          </div>
+          <div className="destination-card" onClick={() => navigate("/destination/Rome")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/rome.jpg" alt="Rome" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Rome</h3>
+          </div>
+          <div className="destination-card" onClick={() => navigate("/destination/Morocco")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/morocco.jpg" alt="Morocco" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Morocco</h3>
+          </div>
         </div>
-      ))}
-    </div>
-    </div>
-  </section>
 
-  {/* About & Feedback will be placed below the planner for better flow */}
+        {/* Bottom 4 Destinations */}
+        <div className="destination-grid" style={{ paddingBottom: "40px" }}>
+          <div className="destination-card" onClick={() => navigate("/destination/Vietnam")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/vietnam.jpg" alt="Vietnam" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Vietnam</h3>
+          </div>
+          <div className="destination-card" onClick={() => navigate("/destination/Phuket")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/phuket.jpg" alt="Phuket" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Phuket</h3>
+          </div>
+          <div className="destination-card" onClick={() => navigate("/destination/Barcelona")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/barcelona.jpg" alt="Barcelona" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Barcelona</h3>
+          </div>
+          <div className="destination-card" onClick={() => navigate("/destination/Sri%20Lanka")} style={{ cursor: "pointer" }}>
+            <img src="/src/assets/destinations/sri-lanka.jpg" alt="Sri Lanka" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px 10px 0 0" }} />
+            <h3 style={{ padding: "15px", textAlign: "center", margin: 0 }}>Sri Lanka</h3>
+          </div>
+        </div>
+      </section>
 
-  {/* AI Itinerary Planner moved to its own page */}
-  {/* About Us (moved from planner) */}
-  <section id="about-us" className="mb-8">
-    <div className="max-w-3xl mx-auto section-content">
-      <h2 className="text-2xl font-semibold mb-3">About Us</h2>
-      <p>Voyage builds tools to help travelers plan faster and smarter. Our AI-driven planner combines public knowledge and your preferences to deliver practical, day-by-day itineraries.</p>
-    </div>
-  </section>
+      {/* Services Section */}
+      <section className="services" id="service" style={{ paddingTop: "40px", paddingBottom: "40px" }}>
+        <h2 style={{ textAlign: "center" }}>Our Services</h2>
+        <div className="service-cards">
+          <div className="card" onClick={() => handleServiceClick("ai-itinerary")}>
+            <div className="card-icon">
+              <i className="icon-ai">📋</i>
+            </div>
+            <h3>AI Itinerary</h3>
+            <p>Generate personalized day-by-day itineraries tailored to your interests and budget</p>
+            <button className="btn">Explore</button>
+          </div>
 
-  {/* Feedback (moved below planner) */}
-  <section id="feedback" className="mb-16 section-bg" style={{ backgroundImage: "url('/pic5.jpg')" }}>
-    <div className="section-content max-w-3xl mx-auto">
-      <h2 className="text-2xl font-semibold mb-4" style={{ color: 'rgba(255,255,255,0.95)' }}>Feedback</h2>
-      <div className="contact-form bg-white/80 p-6 rounded-lg shadow">
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          toast({ title: 'Feedback sent', description: 'Thanks — we appreciate your feedback.' });
-        }}>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
-              <Input required />
+          <div className="card" onClick={() => handleServiceClick("bookings")}>
+            <div className="card-icon">
+              <i className="icon-booking">✈️</i>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <Input type="email" required />
+            <h3>Bookings</h3>
+            <p>Book flights and hotels through our trusted booking partners</p>
+            <button className="btn">Book Now</button>
+          </div>
+
+          <div className="card" onClick={() => handleServiceClick("live-weather")}>
+            <div className="card-icon">
+              <i className="icon-weather">⛅</i>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Message</label>
-              <Textarea rows={5} required />
+            <h3>Live Weather</h3>
+            <p>Check real-time weather forecasts for your destination</p>
+            <button className="btn">Check Weather</button>
+          </div>
+
+          <div className="card" onClick={() => handleServiceClick("share")}>
+            <div className="card-icon">
+              <i className="icon-share">📤</i>
             </div>
-            <div>
-              <Button type="submit">Send Feedback</Button>
+            <h3>Share Your Itinerary</h3>
+            <p>Share your travel plans with friends and family easily</p>
+            <button className="btn">Share</button>
+          </div>
+
+          <div className="card" onClick={() => handleServiceClick("guides")}>
+            <div className="card-icon">
+              <i className="icon-guides">📚</i>
+            </div>
+            <h3>Travel Guides</h3>
+            <p>Access comprehensive travel guides and local tips for every destination</p>
+            <button className="btn">Explore Guides</button>
+          </div>
+
+          <div className="card" onClick={() => handleServiceClick("community")}>
+            <div className="card-icon">
+              <i className="icon-community">👥</i>
+            </div>
+            <h3>Community Forum</h3>
+            <p>Connect with other travelers and share experiences and recommendations</p>
+            <button className="btn">Join Community</button>
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section className="about" id="about" style={{ paddingTop: "40px", paddingBottom: "40px" }}>
+        <div className="about-content">
+          <h2 style={{ fontSize: "2.5rem", marginBottom: "30px", textShadow: "2px 2px 4px rgba(0,0,0,0.2)" }}>About Voyage</h2>
+          <p style={{ fontSize: "1.2rem", lineHeight: "1.8", marginBottom: "25px", maxWidth: "700px", margin: "0 auto 25px" }}>
+            We are an AI-driven itinerary planner built to simplify travel planning. Our mission is to empower travelers to explore the world with confidence and ease.
+            <br />
+            <br />
+            Our platform creates personalized travel plans based on your unique interests, budget, and schedule. Whether you're seeking adventure, culture, relaxation, or adventure sports, Voyage adapts to your preferences.
+            <br />
+            <br />
+            No more endless research or confusing travel guides. Just smart, efficient, and flexible travel planning powered by artificial intelligence.
+            <br />
+            <br />
+            Designed to help you explore the world with ease, Voyage brings together the best of modern technology and travel expertise.
+          </p>
+          
+          {/* Features Grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginTop: "40px" }}>
+            <div style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: "20px", borderRadius: "10px", textAlign: "center", backdropFilter: "blur(10px)" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>🤖</div>
+              <h3 style={{ fontSize: "1.2rem", marginBottom: "10px", color: "white" }}>AI Powered</h3>
+              <p style={{ fontSize: "0.9rem", color: "#e0e0e0" }}>Smart algorithms create perfect itineraries for you</p>
+            </div>
+            <div style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: "20px", borderRadius: "10px", textAlign: "center", backdropFilter: "blur(10px)" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>⚡</div>
+              <h3 style={{ fontSize: "1.2rem", marginBottom: "10px", color: "white" }}>Fast & Easy</h3>
+              <p style={{ fontSize: "0.9rem", color: "#e0e0e0" }}>Plan your trip in minutes, not hours</p>
+            </div>
+            <div style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: "20px", borderRadius: "10px", textAlign: "center", backdropFilter: "blur(10px)" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>🌍</div>
+              <h3 style={{ fontSize: "1.2rem", marginBottom: "10px", color: "white" }}>Global Coverage</h3>
+              <p style={{ fontSize: "0.9rem", color: "#e0e0e0" }}>Explore thousands of destinations worldwide</p>
+            </div>
+            <div style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: "20px", borderRadius: "10px", textAlign: "center", backdropFilter: "blur(10px)" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>💰</div>
+              <h3 style={{ fontSize: "1.2rem", marginBottom: "10px", color: "white" }}>Budget Friendly</h3>
+              <p style={{ fontSize: "0.9rem", color: "#e0e0e0" }}>Plans tailored to any budget level</p>
             </div>
           </div>
-        </form>
-      </div>
-    </div>
-  </section>
 
-  {/* Footer */}
-  <footer className="mt-12 section-bg" style={{ backgroundImage: "url('/pic6.jpg')" }}>
-    <div className="section-content footer-content flex flex-col md:flex-row justify-between items-start gap-6 p-6 bg-card/60 rounded-lg">
-      <div className="footer-logo">
-        <h2 className="text-xl font-bold">Voyage</h2>
-        <p>Empowering travelers with technology</p>
-      </div>
-      <div className="footer-links">
-        <h3 className="font-semibold">Quick Links</h3>
-        <ul className="mt-2">
-          <li><a className="text-sm" href="#home">Home</a></li>
-          <li><a className="text-sm" href="#famous">Destination Places</a></li>
-          <li><a className="text-sm" href="#our-services">Our Services</a></li>
-          <li><a className="text-sm" href="#planner">AI Planner</a></li>
-        </ul>
-      </div>
-    </div>
-  </footer>
+          <div style={{ marginTop: "40px" }}>
+            <h3 style={{ fontSize: "1.5rem", marginBottom: "20px", color: "white" }}>Why Choose Voyage?</h3>
+            <ul style={{ textAlign: "left", maxWidth: "600px", margin: "0 auto", fontSize: "1rem", lineHeight: "2", color: "#e0e0e0" }}>
+              <li>✓ Personalized recommendations based on your preferences</li>
+              <li>✓ Real-time weather and travel updates</li>
+              <li>✓ Integration with booking platforms</li>
+              <li>✓ Share plans with friends and family easily</li>
+              <li>✓ 24/7 travel support and tips</li>
+              <li>✓ Offline access to your itineraries</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
-    </main>
-  </div>
+      {/* Footer */}
+      <footer className="voyage-footer" style={{ paddingTop: "40px", paddingBottom: "20px" }}>
+        <div className="footer-content">
+          <div className="footer-logo">
+            <h2>Voyage</h2>
+            <p>Plan Easy - Save Time</p>
+          </div>
+          <div className="footer-links">
+            <h3>Quick Links</h3>
+            <ul>
+              <li>
+                <a href="#home" onClick={(e) => { e.preventDefault(); scrollToSection("home"); }}>
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="#destination" onClick={(e) => { e.preventDefault(); scrollToSection("destination"); }}>
+                  Destination
+                </a>
+              </li>
+              <li>
+                <a href="#service" onClick={(e) => { e.preventDefault(); scrollToSection("service"); }}>
+                  Service
+                </a>
+              </li>
+              <li>
+                <a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection("about"); }}>
+                  About Us
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };
 
