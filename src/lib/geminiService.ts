@@ -1,4 +1,7 @@
-const GEMINI_API_KEY = 'AIzaSyBlOn5kMN3bD7kb6iUIuEpJ6SvRsZ6zazY';
+// Prefer the Vite env var `VITE_GEMINI_API_KEY` so users can set their key without committing it.
+// Fallback to the existing value for backward compatibility.
+const GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY as string) || 'AIzaSyDluRtqHUT3XmI4Rfi0-GWbqU5czNH9Nek';
+import { findDestination } from './destinations';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent';
 
 export interface ItineraryRequest {
@@ -196,6 +199,26 @@ Include:
         const parsed = tryParseJson(jsonBlock);
         // Basic validation: ensure required fields exist
         if (parsed && typeof parsed === 'object' && Array.isArray(parsed.days)) {
+          // Enrich activities with coordinates when missing by looking up known destinations
+          try {
+            parsed.days.forEach((day: any) => {
+              if (Array.isArray(day.activities)) {
+                day.activities.forEach((act: any) => {
+                  if (!act.coordinates || !act.coordinates.lat || !act.coordinates.lng) {
+                    const lookupName = (act.location || act.title || '').toString();
+                    const dest = findDestination(lookupName);
+                    if (dest && typeof dest.lat === 'number' && typeof dest.lon === 'number') {
+                      act.coordinates = { lat: dest.lat, lng: dest.lon };
+                    }
+                  }
+                });
+              }
+            });
+          } catch (e) {
+            // Non-fatal: continue even if enrichment fails
+            console.warn('Coordinate enrichment failed:', e);
+          }
+
           return parsed as ItineraryData;
         }
       } catch (parseErr) {

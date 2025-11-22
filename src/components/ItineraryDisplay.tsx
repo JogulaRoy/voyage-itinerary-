@@ -231,7 +231,21 @@ Day Total: $${day.estimatedCost}
                   </div>
 
                   {allLocations && allLocations.length > 0 && (
-                    <div className="mb-6">
+                    <div className="mb-6 space-y-4">
+                      {/* Embedded map centered on the first activity with a simple Google maps embed (no API key required). */}
+                      {typeof allLocations[0].lat === 'number' && typeof allLocations[0].lng === 'number' && (
+                        <div className="rounded-2xl overflow-hidden h-64">
+                          <iframe
+                            title="itinerary-map"
+                            src={`https://www.google.com/maps?q=${allLocations[0].lat},${allLocations[0].lng}&z=12&output=embed`}
+                            width="100%"
+                            height="100%"
+                            loading="lazy"
+                            style={{ border: 0 }}
+                          />
+                        </div>
+                      )}
+
                       <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-between">
                         <div>
                           <div className="font-semibold text-slate-800">{allLocations[0].title || allLocations[0].location}</div>
