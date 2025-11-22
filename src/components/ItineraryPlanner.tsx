@@ -35,8 +35,6 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const GEMINI_API_KEY = "AIzaSyBlOn5kMN3bD7kb6iUIuEpJ6SvRsZ6zazY";
-
   const generateItinerary = async () => {
     const dest = destination.trim();
     if (!dest) {
@@ -59,42 +57,25 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
       // Build the prompt with dynamic variables
       const promptText = `You're an AI itinerary planner. You need to plan the best itinerary for ${days} days to cover all major tourist places from ${dest}. Please plan it in a ${budgetLevel} way with user interest of '${userInterests}'. Give me the plan in a well formatted string with bullet points and bold wherever it is necessary from Day 1 to Day ${days}, including food, travel and other costs.`;
 
-      // Build the payload matching the provided structure
-      const payload = {
-        contents: [
-          {
-            parts: [
-              {
-                text: promptText,
-              },
-            ],
-          },
-        ],
-      };
+      // Call backend itinerary endpoint which handles Gemini calls securely
+      const backendUrl = import.meta.env.VITE_ITINERARY_API_URL || "http://localhost:3001/api/generate-itinerary";
 
-      // Call Google Gemini API
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const res = await fetch(backendUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ destination: dest, days, budget: budgetLevel, interests: userInterests }),
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || `API error: ${response.status}`);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `Backend error: ${res.status}`);
       }
 
-      const data = await response.json();
-
-      // Extract the text from Gemini response
-      const text =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        JSON.stringify(data);
+      const json = await res.json();
+      // Expecting { itinerary: string }
+      const text = json?.itinerary || json?.itineraryText || JSON.stringify(json);
 
       setItinerary(text);
 
@@ -164,15 +145,16 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
 
   return (
     <div 
-      className="w-full max-w-6xl mx-auto space-y-8 text-base md:text-lg"
+      className="w-full space-y-8 text-base md:text-lg"
       style={{
-        backgroundImage: "url('/pic16.jpeg')",
+        backgroundImage: "url('/pic15.jpeg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
         backgroundRepeat: "no-repeat",
         minHeight: "100vh",
-        padding: "2rem"
+        paddingTop: "2rem",
+        paddingBottom: "2rem"
       }}
     >
       <div className="max-w-6xl mx-auto space-y-8 text-base md:text-lg px-4">
@@ -421,7 +403,6 @@ const ItineraryPlanner = ({ destinations }: ItineraryPlannerProps) => {
           </div>
         </Card>
       )}
-    </div>
       </div>
     </div>
   );

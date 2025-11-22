@@ -460,8 +460,14 @@ body {
   z-index: 1000;
 }
 
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .logo h1 {
-  color: #9a8761;
+  color: #9ab5c8;
   font-size: 3.8rem;
   font-weight: 700;
 }
@@ -479,6 +485,7 @@ body {
   font-weight: 500;
   transition: var(--transition);
   position: relative;
+  color: #9ab5c8;
 }
 
 .voyage-nav ul li a::after {
@@ -621,7 +628,7 @@ section {
 /* ===== SERVICES SECTION ===== */
 .services {
   background-color: white;
-  background-image: url('pic13.jpg');
+  background-image: url('pic3.jpg');
   background-attachment: fixed;
   background-size: cover;
   background-position: center;

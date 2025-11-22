@@ -44,17 +44,19 @@ const Weather: React.FC = () => {
   const getIconFor = (condition: string) => {
     switch (condition) {
       case "Clouds":
-        return "/images/clouds.png";
+        return "/clouds.png";
       case "Clear":
-        return "/images/clear.png";
+        return "/clear.png";
       case "Rain":
-        return "/images/rain.png";
+        return "/rain.png";
       case "Drizzle":
-        return "/images/drizzle.png";
+        return "/drizzle.png";
       case "Mist":
-        return "/images/mist.png";
+        return "/mist.png";
+      case "Snow":
+        return "/snow.png";
       default:
-        return "/images/clouds.png";
+        return "/clouds.png";
     }
   };
 
@@ -139,14 +141,14 @@ const Weather: React.FC = () => {
 
             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 30, padding: "0 10px" }}>
               <div style={{ display: "flex", alignItems: "center", textAlign: "left" }}>
-                <img src="/images/humidity.png" alt="humidity icon" style={{ width: 40, marginRight: 10 }} />
+                <img src="/humidity.png" alt="humidity icon" style={{ width: 40, marginRight: 10 }} />
                 <div>
                   <p style={{ fontSize: 20, marginTop: -6 }}>{weather.humidity}%</p>
                   <p>Humidity</p>
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", textAlign: "left" }}>
-                <img src="/images/wind.png" alt="wind icon" style={{ width: 40, marginRight: 10 }} />
+                <img src="/wind.png" alt="wind icon" style={{ width: 40, marginRight: 10 }} />
                 <div>
                   <p style={{ fontSize: 20, marginTop: -6 }}>{weather.wind} km/h</p>
                   <p>Wind Speed</p>

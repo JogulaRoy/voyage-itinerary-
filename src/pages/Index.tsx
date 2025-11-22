@@ -36,7 +36,7 @@ const Index = () => {
       {/* Header */}
       <header className="voyage-header">
         <div className="logo">
-          <h1>Voyage</h1>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontWeight: "900", letterSpacing: "2px" }}>Voyage</h1>
         </div>
         <nav className="voyage-nav">
           <ul>
@@ -86,8 +86,8 @@ const Index = () => {
       </section>
 
       {/* Famous Destinations Section */}
-      <section className="services" id="destination" style={{ backgroundColor: "white", backgroundImage: "url('pic2.jpg')" }}>
-        <h2 style={{ textAlign: "center", color: "white", paddingTop: "40px" }}>Famous Destination Places</h2>
+      <section className="services" id="destination" style={{ backgroundColor: "white", backgroundImage: "url('pic12.jpeg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+        <h2 style={{ textAlign: "center", color: "white", paddingTop: "40px", fontWeight: "bold", fontSize: "2.5rem", fontFamily: "'Great Vibes', 'Cursive', cursive", fontStyle: "italic" }}>Famous Destinations</h2>
         
         {/* Top 4 Destinations */}
         <div className="destination-grid" style={{ paddingBottom: "20px" }}>
@@ -131,8 +131,8 @@ const Index = () => {
       </section>
 
       {/* Services Section */}
-      <section className="services" id="service" style={{ paddingTop: "40px", paddingBottom: "40px" }}>
-        <h2 style={{ textAlign: "center" }}>Our Services</h2>
+      <section className="services" id="service" style={{ paddingTop: "40px", paddingBottom: "40px", backgroundImage: "url('pic18.jpeg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
+        <h2 style={{ textAlign: "center", fontWeight: "bold", fontSize: "2.5rem", fontFamily: "'Great Vibes', 'Cursive', cursive", fontStyle: "italic" }}>Our Services</h2>
         <div className="service-cards">
           <div className="card" onClick={() => handleServiceClick("ai-itinerary")}>
             <div className="card-icon">
@@ -169,31 +169,13 @@ const Index = () => {
             <p>Share your travel plans with friends and family easily</p>
             <button className="btn">Share</button>
           </div>
-
-          <div className="card" onClick={() => handleServiceClick("guides")}>
-            <div className="card-icon">
-              <i className="icon-guides">📚</i>
-            </div>
-            <h3>Travel Guides</h3>
-            <p>Access comprehensive travel guides and local tips for every destination</p>
-            <button className="btn">Explore Guides</button>
-          </div>
-
-          <div className="card" onClick={() => handleServiceClick("community")}>
-            <div className="card-icon">
-              <i className="icon-community">👥</i>
-            </div>
-            <h3>Community Forum</h3>
-            <p>Connect with other travelers and share experiences and recommendations</p>
-            <button className="btn">Join Community</button>
-          </div>
         </div>
       </section>
 
       {/* About Section */}
-      <section className="about" id="about" style={{ paddingTop: "40px", paddingBottom: "40px" }}>
+      <section className="about" id="about" style={{ paddingTop: "40px", paddingBottom: "40px", backgroundImage: "url('pic17.jpeg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed" }}>
         <div className="about-content">
-          <h2 style={{ fontSize: "2.5rem", marginBottom: "30px", textShadow: "2px 2px 4px rgba(0,0,0,0.2)" }}>About Voyage</h2>
+          <h2 style={{ fontSize: "2.5rem", marginBottom: "30px", textShadow: "2px 2px 4px rgba(0,0,0,0.2)", fontFamily: "'Great Vibes', 'Cursive', cursive", fontStyle: "italic" }}>About Voyage</h2>
           <p style={{ fontSize: "1.2rem", lineHeight: "1.8", marginBottom: "25px", maxWidth: "700px", margin: "0 auto 25px" }}>
             We are an AI-driven itinerary planner built to simplify travel planning. Our mission is to empower travelers to explore the world with confidence and ease.
             <br />
@@ -208,7 +190,7 @@ const Index = () => {
           </p>
           
           {/* Features Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginTop: "40px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginTop: "40px" }}>
             <div style={{ backgroundColor: "rgba(255,255,255,0.1)", padding: "20px", borderRadius: "10px", textAlign: "center", backdropFilter: "blur(10px)" }}>
               <div style={{ fontSize: "2.5rem", marginBottom: "10px" }}>🤖</div>
               <h3 style={{ fontSize: "1.2rem", marginBottom: "10px", color: "white" }}>AI Powered</h3>

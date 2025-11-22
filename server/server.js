@@ -15,6 +15,18 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(express.json());
+// Allow CORS for development (adjust in production)
+app.use(function (req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
 
 /**
  * Call Google Gemini API
